@@ -1,0 +1,20 @@
+{
+  "name": "После Конца — PWA RPG",
+  "short_name": "После Конца",
+  "description": "Интерактивная офлайн-RPG о городе после катастрофы.",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
