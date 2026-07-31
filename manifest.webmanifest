@@ -1,14 +1,14 @@
 {
-  "name": "После Конца — PWA RPG",
-  "short_name": "После Конца",
-  "description": "Интерактивная офлайн-RPG о городе после катастрофы.",
+  "name": "Dreams — город забытых снов",
+  "short_name": "Dreams",
+  "description": "Атмосферная сюжетная ролевая игра о городе, который помнит чужие сны.",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#08090d",
-  "theme_color": "#08090d",
+  "background_color": "#07080d",
+  "theme_color": "#07080d",
   "icons": [
     {
       "src": "./icon.svg",
