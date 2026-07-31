@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="После Конца" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+  <title>После Конца</title>
+</head>
+<body>
+  <div class="noise"></div>
+  <main class="shell">
+    <section class="hero" aria-labelledby="game-title">
+      <div class="topbar">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <button class="icon-button" id="soundButton" aria-label="Включить или выключить звук">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6.8 8.2H3v7.6h3.8L11 19V5Zm4.2 3.2a5.4 5.4 0 0 1 0 7.6m2.7-10.3a9.2 9.2 0 0 1 0 13"/></svg>
+        </button>
+      </div>
+
+      <div class="sky-glow"></div>
+      <div class="city" aria-hidden="true">
+        <div class="building b1"></div><div class="building b2"></div><div class="building b3"></div>
+        <div class="building b4"></div><div class="building b5"></div><div class="building b6"></div>
+        <div class="tower"></div>
+      </div>
+
+      <div class="content">
+        <div class="eyebrow"><span class="pulse"></span> Интерактивная RPG</div>
+        <h1 id="game-title">ПОСЛЕ<br><span>КОНЦА</span></h1>
+        <p class="tagline">Город молчит. Река замёрзла.<br>Твои решения ещё помнят.</p>
+
+        <div class="actions">
+          <button class="primary" id="startButton">
+            <span>Начать историю</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+          <button class="secondary" id="continueButton" disabled>
+            <span>Продолжить</span><small>Сохранений пока нет</small>
+          </button>
+        </div>
+
+        <button class="install" id="installButton" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14"/></svg>
+          Установить игру
+        </button>
+      </div>
+
+      <footer>
+        <span>Версия 0.1</span>
+        <span class="line"></span>
+        <span>Работает офлайн</span>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">Первая глава скоро откроется</div>
+  <script src="./app.js" defer></script>
+</body>
+</html>
