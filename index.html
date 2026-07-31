@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#08090d" />
+  <meta name="theme-color" content="#07080d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="После Конца" />
+  <meta name="apple-mobile-web-app-title" content="Dreams" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" />
   <link rel="apple-touch-icon" href="./icon.svg" />
   <link rel="stylesheet" href="./styles.css" />
-  <title>После Конца</title>
+  <title>Dreams — ролевая история</title>
 </head>
 <body>
   <div class="noise"></div>
@@ -25,6 +25,9 @@
       </div>
 
       <div class="sky-glow"></div>
+      <div class="moon" aria-hidden="true"></div>
+      <div class="mist mist-one" aria-hidden="true"></div>
+      <div class="mist mist-two" aria-hidden="true"></div>
       <div class="city" aria-hidden="true">
         <div class="building b1"></div><div class="building b2"></div><div class="building b3"></div>
         <div class="building b4"></div><div class="building b5"></div><div class="building b6"></div>
@@ -32,9 +35,10 @@
       </div>
 
       <div class="content">
-        <div class="eyebrow"><span class="pulse"></span> Интерактивная RPG</div>
-        <h1 id="game-title">ПОСЛЕ<br><span>КОНЦА</span></h1>
-        <p class="tagline">Город молчит. Река замёрзла.<br>Твои решения ещё помнят.</p>
+        <div class="eyebrow"><span class="pulse"></span> Сюжетная ролевая игра</div>
+        <h1 id="game-title">Dreams</h1>
+        <p class="russian-title">Город забытых снов</p>
+        <p class="tagline">Некоторые сны помнят тебя.<br>Некоторые не отпускают.</p>
 
         <div class="actions">
           <button class="primary" id="startButton">
@@ -53,9 +57,9 @@
       </div>
 
       <footer>
-        <span>Версия 0.1</span>
+        <span>Версия 0.2</span>
         <span class="line"></span>
-        <span>Работает офлайн</span>
+        <span>Работает без интернета</span>
       </footer>
     </section>
   </main>
