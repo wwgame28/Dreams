@@ -1,108 +1,45 @@
 import React, { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  ShieldCheck, Search, FileImage, ExternalLink,
-  CheckCircle2, ChevronRight, Sparkles, UserCheck, CircleHelp, Download,
-  LoaderCircle, ListChecks, Settings2
-} from 'lucide-react';
+import { ShieldCheck, Search, FileImage, ExternalLink, CheckCircle2, Sparkles, UserCheck, Download, LoaderCircle, ListChecks, Settings2, BadgeCheck, Plus, Trash2, RotateCcw } from 'lucide-react';
 import './styles.css';
 
-type Status = 'found' | 'not_found' | 'unknown';
-type ScanResult = { service:string; category:string; profile_url:string; delete_url:string; status:Status; http_status?:number };
-type Task = ScanResult & { taskStatus:'new'|'queued'|'done' };
-type Tab = 'overview'|'accounts'|'files'|'settings';
+type Status='found'|'not_found'|'unknown';
+type TaskStatus='new'|'queued'|'done';
+type Result={service:string;category:string;profile_url:string;delete_url:string;status:Status;http_status?:number;taskStatus:TaskStatus};
+type Identity={id:string;type:'username'|'email'|'phone';value:string;verified:boolean};
+type Tab='home'|'identities'|'results'|'files'|'settings';
+const STORE='tracezero-v2-state';
 
-const STORE_KEY = 'tracezero-state-v1';
+function load(){try{return JSON.parse(localStorage.getItem(STORE)||'') as {identities:Identity[];results:Result[]}}catch{return {identities:[],results:[]}}}
 
-function loadState(): {username:string; results:Task[]} {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '') } catch { return { username:'', results:[] } }
-}
-
-function App() {
-  const saved = loadState();
-  const [tab, setTab] = useState<Tab>('overview');
-  const [username, setUsername] = useState(saved.username);
-  const [results, setResults] = useState<Task[]>(saved.results);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [cleaning, setCleaning] = useState(false);
-
-  useEffect(() => localStorage.setItem(STORE_KEY, JSON.stringify({ username, results })), [username, results]);
-
-  const found = results.filter(r => r.status === 'found');
-  const queued = results.filter(r => r.taskStatus === 'queued').length;
-  const done = results.filter(r => r.taskStatus === 'done').length;
-  const unknown = results.filter(r => r.status === 'unknown').length;
-  const score = useMemo(() => Math.max(5, Math.min(95, 18 + found.length * 8 + unknown * 2 - done * 5)), [found.length, unknown, done]);
-
-  async function runScan() {
-    const clean = username.trim();
-    if (clean.length < 2 || !/^[A-Za-z0-9_.-]+$/.test(clean)) {
-      setMessage('Введите ник латиницей: буквы, цифры, точка, дефис или подчёркивание.'); return;
-    }
-    setLoading(true); setMessage('');
-    try {
-      const response = await fetch(`/api/scan?username=${encodeURIComponent(clean)}`);
-      if (!response.ok) throw new Error('scan failed');
-      const data: ScanResult[] = await response.json();
-      setResults(data.map(item => ({...item, taskStatus:'new'})));
-      setTab('accounts');
-    } catch {
-      setMessage('Сканирование не запустилось. Проверьте соединение и повторите.');
-    } finally { setLoading(false); }
-  }
-
-  function setTask(service:string, taskStatus:Task['taskStatus']) {
-    setResults(items => items.map(item => item.service === service ? {...item, taskStatus} : item));
-  }
-
-  async function cleanImage(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setMessage('Пока поддерживаются изображения JPG, PNG и WebP.'); return; }
-    setCleaning(true); setMessage('');
-    try {
-      const bitmap = await createImageBitmap(file);
-      const canvas = document.createElement('canvas');
-      canvas.width = bitmap.width; canvas.height = bitmap.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('canvas');
-      ctx.drawImage(bitmap, 0, 0);
-      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, mime, 0.94));
-      if (!blob) throw new Error('blob');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const base = file.name.replace(/\.[^.]+$/, '');
-      a.href = url; a.download = `${base}-clean.${mime === 'image/png' ? 'png' : 'jpg'}`; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      setMessage('Готово. Изображение пересобрано без исходных EXIF и GPS-метаданных.');
-    } catch { setMessage('Не удалось обработать файл на этом устройстве.'); }
-    finally { setCleaning(false); }
-  }
-
-  return <div className="app">
-    <header><div className="brand"><div className="logo"><ShieldCheck size={22}/></div><div><b>TraceZero</b><span>Центр цифровой приватности</span></div></div><div className="localBadge">Локально</div></header>
-    <main>
-      {message && <div className="notice">{message}</div>}
-      {tab === 'overview' && <>
-        <section className="hero glass"><div><span className="eyebrow"><Sparkles size={14}/> ТЕКУЩИЙ РИСК</span><h1>{results.length ? score : '—'}<small>/100</small></h1><p>{results.length ? `Проверено ${results.length} сервисов. Найдено вероятных профилей: ${found.length}.` : 'Добавьте свой ник и проверьте открытые профили. Только свои данные.'}</p></div><div className="ring" style={{'--p': `${results.length ? score : 0}%`} as React.CSSProperties}><span>{results.length ? score : '?'}</span></div></section>
-        <section className="scanBox glass"><label>Ваш публичный ник</label><div><input value={username} onChange={e=>setUsername(e.target.value)} placeholder="например, danil_28" autoCapitalize="none"/><button onClick={runScan} disabled={loading}>{loading ? <LoaderCircle className="spin"/> : <Search/>}</button></div><small>Проверка выполняется по общедоступным страницам. Результаты требуют ручного подтверждения.</small></section>
-        <section className="stats"><article className="glass"><UserCheck/><b>{found.length}</b><span>вероятных профилей</span></article><article className="glass"><CircleHelp/><b>{unknown}</b><span>нужно проверить</span></article><article className="glass"><ListChecks/><b>{queued}</b><span>в очереди</span></article></section>
-        <section><div className="sectionTitle"><h2>Следующие действия</h2><button onClick={()=>setTab('accounts')}>Все <ChevronRight size={16}/></button></div><div className="list glass">{found.slice(0,4).map(item=><AccountRow key={item.service} item={item} setTask={setTask}/>)}{!found.length && <div className="empty">После проверки здесь появятся найденные профили и ссылки на удаление.</div>}</div></section>
-      </>}
-      {tab === 'accounts' && <section><span className="eyebrow">РЕЗУЛЬТАТЫ ПРОВЕРКИ</span><h2>Публичные профили</h2>{!results.length ? <div className="emptyCard glass">Сначала запустите проверку на главном экране.</div> : <><div className="filters"><span>Найдено: {found.length}</span><span>Не найдено: {results.filter(r=>r.status==='not_found').length}</span><span>Неясно: {unknown}</span></div><div className="list glass">{results.map(item=><AccountRow key={item.service} item={item} setTask={setTask}/>)}</div></>}</section>}
-      {tab === 'files' && <section><span className="eyebrow">ОБРАБОТКА НА УСТРОЙСТВЕ</span><h2>Очистка метаданных</h2><div className="drop glass"><FileImage size={42}/><b>Удалить EXIF и GPS</b><p>Фото пересобирается прямо в браузере и не отправляется на сервер. Поддерживаются JPG, PNG и WebP.</p><label>{cleaning ? <><LoaderCircle className="spin"/> Обработка…</> : <><Download size={18}/> Выбрать фото</>}<input type="file" accept="image/*" hidden onChange={cleanImage} disabled={cleaning}/></label></div><div className="privacyNote"><ShieldCheck/> Исходный файл остаётся на вашем устройстве.</div></section>}
-      {tab === 'settings' && <section><span className="eyebrow">НАСТРОЙКИ</span><h2>Данные приложения</h2><div className="settingsCard glass"><b>Локальное сохранение</b><p>Ник, результаты и очередь задач хранятся только в браузере этого устройства.</p><button className="danger" onClick={()=>{localStorage.removeItem(STORE_KEY);setUsername('');setResults([]);setMessage('Локальные данные удалены.');}}>Очистить мои данные</button></div><div className="settingsCard glass"><b>Что пока не подключено</b><p>Проверка email по базам утечек и анализ почты требуют отдельных API и безопасной авторизации.</p></div></section>}
-    </main>
-    <nav>{[['overview','Обзор',ShieldCheck],['accounts','Аккаунты',Search],['files','Файлы',FileImage],['settings','Настройки',Settings2]].map(([id,label,Icon])=><button key={id as string} className={tab===id?'active':''} onClick={()=>setTab(id as Tab)}><Icon size={20}/><span>{label as string}</span></button>)}</nav>
-  </div>
-}
-
-function AccountRow({item,setTask}:{item:Task;setTask:(service:string,status:Task['taskStatus'])=>void}) {
-  const label = item.status === 'found' ? 'Найден' : item.status === 'not_found' ? 'Не найден' : 'Проверить';
-  return <div className="row"><div className={`statusDot ${item.status}`}></div><div className="grow"><b>{item.service}</b><span>{item.category} · {label}</span></div><a href={item.profile_url} target="_blank" rel="noreferrer" aria-label="Открыть профиль"><ExternalLink size={17}/></a>{item.status !== 'not_found' && (item.taskStatus === 'done' ? <CheckCircle2 className="ok"/> : <button onClick={()=> item.taskStatus === 'queued' ? setTask(item.service,'done') : setTask(item.service,'queued')}>{item.taskStatus === 'queued' ? 'Готово' : 'Удалить'}</button>)}{item.taskStatus === 'queued' && <a className="deleteLink" href={item.delete_url} target="_blank" rel="noreferrer">Инструкция</a>}</div>
-}
-
+function App(){
+ const saved=load();
+ const [tab,setTab]=useState<Tab>('home');
+ const [identities,setIdentities]=useState<Identity[]>(saved.identities||[]);
+ const [results,setResults]=useState<Result[]>(saved.results||[]);
+ const [value,setValue]=useState('');
+ const [type,setType]=useState<Identity['type']>('username');
+ const [loading,setLoading]=useState(false);
+ const [message,setMessage]=useState('Версия 2.0 загружена');
+ const [cleaning,setCleaning]=useState(false);
+ useEffect(()=>localStorage.setItem(STORE,JSON.stringify({identities,results})),[identities,results]);
+ const verifiedUsernames=identities.filter(i=>i.type==='username'&&i.verified);
+ const found=results.filter(r=>r.status==='found');
+ const queued=results.filter(r=>r.taskStatus==='queued');
+ const done=results.filter(r=>r.taskStatus==='done');
+ const score=useMemo(()=>results.length?Math.max(5,Math.min(95,20+found.length*7-done.length*5)):0,[results,found.length,done.length]);
+ function addIdentity(){const clean=value.trim();if(!clean)return setMessage('Введите значение.');if(type==='username'&&!/^[A-Za-z0-9_.-]{2,40}$/.test(clean))return setMessage('Ник: латиница, цифры, точка, дефис или подчёркивание.');setIdentities(v=>[...v,{id:crypto.randomUUID(),type,value:clean,verified:false}]);setValue('');setMessage('Идентификатор добавлен. Подтвердите, что он принадлежит вам.');}
+ function verify(id:string){setIdentities(v=>v.map(i=>i.id===id?{...i,verified:true}:i));setMessage('Подтверждено локально для MVP. В боевой версии будет код или OAuth.');}
+ async function scanAll(){if(!verifiedUsernames.length){setTab('identities');return setMessage('Сначала добавьте и подтвердите хотя бы один свой ник.');}setLoading(true);setMessage('Проверяем открытые страницы…');try{const groups=await Promise.all(verifiedUsernames.map(async i=>{const r=await fetch(`/api/scan?username=${encodeURIComponent(i.value)}`);if(!r.ok)throw new Error();return await r.json()}));const merged=new Map<string,Result>();groups.flat().forEach((x:any)=>merged.set(`${x.service}:${x.profile_url}`,{...x,taskStatus:'new'}));setResults([...merged.values()]);setTab('results');setMessage('Проверка завершена. Откройте найденные страницы и подтвердите результат вручную.');}catch{setMessage('Сканирование не запустилось. Проверьте сборку Amvera и повторите.');}finally{setLoading(false)}}
+ function queueAll(){setResults(v=>v.map(r=>r.status==='found'||r.status==='unknown'?{...r,taskStatus:'queued'}:r));setMessage('Все допустимые запросы добавлены в очередь.');}
+ function setTask(key:string,s:TaskStatus){setResults(v=>v.map(r=>`${r.service}:${r.profile_url}`===key?{...r,taskStatus:s}:r));}
+ async function cleanImage(e:ChangeEvent<HTMLInputElement>){const f=e.target.files?.[0];e.target.value='';if(!f)return;if(!f.type.startsWith('image/'))return setMessage('Поддерживаются изображения.');setCleaning(true);try{const b=await createImageBitmap(f);const c=document.createElement('canvas');c.width=b.width;c.height=b.height;c.getContext('2d')?.drawImage(b,0,0);const mime=f.type==='image/png'?'image/png':'image/jpeg';const blob=await new Promise<Blob|null>(r=>c.toBlob(r,mime,.94));if(!blob)throw new Error();const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=f.name.replace(/\.[^.]+$/,'')+'-clean.'+(mime==='image/png'?'png':'jpg');a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);setMessage('Готово: EXIF и GPS удалены пересборкой изображения.');}catch{setMessage('Не удалось обработать файл.');}finally{setCleaning(false)}}
+ return <div className="app"><header><div className="brand"><div className="logo"><ShieldCheck/></div><div><b>TraceZero <em>v2</em></b><span>Самоаудит цифрового следа</span></div></div><span className="safe">Только свои данные</span></header><main>{message&&<div className="notice">{message}</div>}
+ {tab==='home'&&<><section className="hero glass"><div><span className="eyebrow"><Sparkles/> ЦИФРОВОЙ РИСК</span><h1>{results.length?score:'—'}<small>/100</small></h1><p>{results.length?`Проверено ${results.length} страниц, вероятно найдено ${found.length}.`:'Добавьте свои ники, подтвердите владение и запустите проверку.'}</p></div><div className="ring" style={{'--p':`${score}%`} as React.CSSProperties}><span>{results.length?score:'?'}</span></div></section><button className="primary" onClick={scanAll} disabled={loading}>{loading?<LoaderCircle className="spin"/>:<Search/>}{loading?'Идёт проверка…':'Проверить мои профили'}</button><section className="stats"><article className="glass"><BadgeCheck/><b>{identities.filter(i=>i.verified).length}</b><span>подтверждено</span></article><article className="glass"><UserCheck/><b>{found.length}</b><span>найдено</span></article><article className="glass"><ListChecks/><b>{queued.length}</b><span>в очереди</span></article></section><section className="quick glass"><h2>Что умеет версия 2</h2><p>Поиск собственных публичных профилей, очередь официального удаления, массовое создание задач и локальная очистка фото.</p><button onClick={()=>setTab('identities')}>Добавить мои данные</button></section></>}
+ {tab==='identities'&&<section><span className="eyebrow">МОИ ИДЕНТИФИКАТОРЫ</span><h2>Добавьте только свои данные</h2><div className="form glass"><select value={type} onChange={e=>setType(e.target.value as Identity['type'])}><option value="username">Ник</option><option value="email">Email</option><option value="phone">Телефон</option></select><input value={value} onChange={e=>setValue(e.target.value)} placeholder={type==='username'?'danil_28':type==='email'?'name@example.com':'+7…'}/><button onClick={addIdentity}><Plus/></button></div><div className="list glass">{identities.map(i=><div className="row" key={i.id}><div className="grow"><b>{i.value}</b><span>{i.type} · {i.verified?'подтверждено':'не подтверждено'}</span></div>{!i.verified&&<button onClick={()=>verify(i.id)}>Подтвердить</button>}<button className="iconOnly" onClick={()=>setIdentities(v=>v.filter(x=>x.id!==i.id))}><Trash2/></button></div>)}{!identities.length&&<div className="empty">Список пуст.</div>}</div><p className="hint">В MVP подтверждение локальное. SMS, email-коды и OAuth подключаются отдельными провайдерами.</p></section>}
+ {tab==='results'&&<section><div className="headRow"><div><span className="eyebrow">РЕЗУЛЬТАТЫ</span><h2>Публичные страницы</h2></div><button className="mass" onClick={queueAll}>Удалить всё</button></div><p className="hint">Кнопка создаёт очередь официальных действий. Она не обходит пароль, CAPTCHA или двухфакторную защиту.</p><div className="list glass">{results.map(r=><ResultRow key={`${r.service}:${r.profile_url}`} r={r} setTask={setTask}/>)}{!results.length&&<div className="empty">Пока результатов нет.</div>}</div></section>}
+ {tab==='files'&&<section><span className="eyebrow">ЛОКАЛЬНАЯ ОЧИСТКА</span><h2>Удалить метаданные</h2><div className="drop glass"><FileImage/><b>EXIF и GPS</b><p>Изображение обрабатывается в браузере и не загружается на сервер.</p><label>{cleaning?<><LoaderCircle className="spin"/> Обработка…</>:<><Download/> Выбрать фото</>}<input hidden type="file" accept="image/*" onChange={cleanImage}/></label></div></section>}
+ {tab==='settings'&&<section><span className="eyebrow">НАСТРОЙКИ</span><h2>Данные приложения</h2><div className="quick glass"><p>Все введённые идентификаторы и результаты хранятся локально в браузере.</p><button className="danger" onClick={()=>{localStorage.removeItem(STORE);setIdentities([]);setResults([]);setMessage('Локальные данные удалены.')}}><RotateCcw/> Очистить всё</button></div></section>}
+ </main><nav>{[['home','Обзор',ShieldCheck],['identities','Мои данные',BadgeCheck],['results','Результаты',Search],['files','Файлы',FileImage],['settings','Настройки',Settings2]].map(([id,label,Icon])=><button key={id as string} className={tab===id?'active':''} onClick={()=>setTab(id as Tab)}><Icon/><span>{label as string}</span></button>)}</nav></div>}
+function ResultRow({r,setTask}:{r:Result;setTask:(k:string,s:TaskStatus)=>void}){const key=`${r.service}:${r.profile_url}`;const label=r.status==='found'?'Найден':r.status==='not_found'?'Не найден':'Проверить';return <div className="row"><div className={`dot ${r.status}`}/><div className="grow"><b>{r.service}</b><span>{r.category} · {label}</span></div><a href={r.profile_url} target="_blank" rel="noreferrer"><ExternalLink/></a>{r.status!=='not_found'&&(r.taskStatus==='done'?<CheckCircle2 className="ok"/>:<button onClick={()=>setTask(key,r.taskStatus==='queued'?'done':'queued')}>{r.taskStatus==='queued'?'Готово':'Удалить'}</button>)}{r.taskStatus==='queued'&&<a className="instruction" href={r.delete_url} target="_blank" rel="noreferrer">Инструкция</a>}</div>}
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
